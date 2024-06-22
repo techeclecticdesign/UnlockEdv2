@@ -60,7 +60,7 @@ func (srv *Server) UserActivityMiddleware(next http.Handler) http.Handler {
 			ClickedUrl:  clickedUrl,
 		}
 		if err := srv.Db.CreateActivityForUser(&activity); err != nil {
-			log.Error("Error creating user activity: " + err.Error())
+			log.WithField("user id", userID).Errorf("Error creating user activity: %v", err.Error())
 			srv.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		}
 		next.ServeHTTP(w, r.WithContext(r.Context()))
@@ -68,6 +68,11 @@ func (srv *Server) UserActivityMiddleware(next http.Handler) http.Handler {
 }
 
 func (srv *Server) handleGetAllUserActivities(w http.ResponseWriter, r *http.Request) {
+	logFields := log.Fields{
+		"handler": "handleGetAllUserActivities",
+		"route":   "GET /api/users/activity-log",
+	}
+
 	page, perPage := srv.GetPaginationInfo(r)
 	search := r.URL.Query().Get("search")
 	total := int64(0)
@@ -76,14 +81,15 @@ func (srv *Server) handleGetAllUserActivities(w http.ResponseWriter, r *http.Req
 	if search != "" {
 		total, activities, err = srv.Db.SearchUserActivity(search, page, perPage)
 		if err != nil {
-			log.Debug("Error fetching user activities: ", err)
+			logFields["search"] = search
+			log.WithFields(logFields).Errorf("Error fetching user activities: %v", err)
 			srv.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	} else {
 		total, activities, err = srv.Db.GetAllUserActivity(page, perPage)
 		if err != nil {
-			log.Debug("Error fetching user activities: ", err)
+			log.WithFields(logFields).Errorf("Error fetching user activities: %v", err)
 			srv.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -94,24 +100,31 @@ func (srv *Server) handleGetAllUserActivities(w http.ResponseWriter, r *http.Req
 		Data: activities,
 	}
 	if err := srv.WriteResponse(w, http.StatusOK, response); err != nil {
+		log.WithFields(logFields).Errorf("Error writing response: %v", err)
 		srv.ErrorResponse(w, http.StatusInternalServerError, string(err.Error()))
 	}
 }
 
 func (srv *Server) handleGetUserActivityByID(w http.ResponseWriter, r *http.Request) {
+	logFields := log.Fields{
+		"handler": "handleGetUserActivityByID",
+		"route":   "GET /api/users/{id}/activity-log",
+	}
 	if !srv.canViewUserData(r) {
 		srv.ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
+		log.WithFields(logFields).Errorf("Invalid ID: %v", err.Error())
 		srv.ErrorResponse(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
+	logFields["id"] = id
 	page, perPage := srv.GetPaginationInfo(r)
 	total, activity, err := srv.Db.GetActivityForUser(id, page, perPage)
 	if err != nil {
-		log.Debug("Error fetching user activity: ", err)
+		log.WithFields(logFields).Errorf("Error fetching user activity: %v", err)
 		srv.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -121,7 +134,7 @@ func (srv *Server) handleGetUserActivityByID(w http.ResponseWriter, r *http.Requ
 		Data: activity,
 	}
 	if err := srv.WriteResponse(w, http.StatusOK, response); err != nil {
-		log.Debug("Error writing response: ", err)
+		log.WithFields(logFields).Errorf("Error writing response: %v", err)
 		srv.ErrorResponse(w, http.StatusInternalServerError, err.Error())
 	}
 }

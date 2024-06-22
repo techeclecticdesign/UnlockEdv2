@@ -160,7 +160,7 @@ func (db *DB) GetUserDashboardInfo(userID int) (models.UserDashboardJoin, error)
 		Group("p.id, p.name, p.alt_name, p.thumbnail_url, pp.name").
 		Find(&recentPrograms).Error
 	if err != nil {
-		log.Errorf("Error getting recent programs: %v", err)
+		log.WithFields(log.Fields{"UserID": userID}).Errorf("Error getting recent programs for user: %v", err)
 		recentPrograms = [3]models.RecentProgram{}
 	}
 	// then get the users current enrollments
@@ -188,7 +188,7 @@ func (db *DB) GetUserDashboardInfo(userID int) (models.UserDashboardJoin, error)
 	}
 	enrollments := dashboardHelper(results)
 	if len(enrollments) == 0 {
-		log.Println("No enrollments found")
+		log.Info("No enrollments found.")
 		var newEnrollments []struct {
 			ProgramID            uint
 			AltName              string
@@ -212,7 +212,7 @@ func (db *DB) GetUserDashboardInfo(userID int) (models.UserDashboardJoin, error)
 				ProviderPlatformName: enrollment.ProviderPlatformName,
 				ExternalURL:          enrollment.ExternalURL,
 			})
-			log.Printf("enrollments: %v", enrollments)
+			log.Debugf("enrollments: %v", enrollments)
 		}
 	}
 	// get activity for past 7 days

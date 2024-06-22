@@ -21,9 +21,9 @@ func (db *DB) DeleteAllLinks() error {
 
 func (db *DB) CreateFreshLeftMenuLinks(links []models.LeftMenuLink) error {
 	if err := db.Conn.Create(&links).Error; err != nil {
-		log.Errorf("Error creating links: %v", err)
+		log.Errorf("Error creating left menu links: %v", err)
 		return err
 	}
-	log.Infof("Left-Menu-Links created")
+	log.Debugf("Left-Menu-Links created")
 	return nil
 }

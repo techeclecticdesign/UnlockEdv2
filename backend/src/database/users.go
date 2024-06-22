@@ -13,7 +13,7 @@ func (db *DB) GetCurrentUsers(page, itemsPerPage int) (int64, []models.User, err
 
 	offset := (page - 1) * itemsPerPage
 	if err := db.Conn.Model(&models.User{}).Count(&count).Error; err != nil {
-		log.Printf("Error counting users: %v", err)
+		log.Errorf("Error with database counting users: %v", err)
 		return 0, nil, err
 	}
 
@@ -21,7 +21,7 @@ func (db *DB) GetCurrentUsers(page, itemsPerPage int) (int64, []models.User, err
 		Offset(offset).
 		Limit(itemsPerPage).
 		Find(&users).Error; err != nil {
-		log.Printf("Error fetching users: %v", err)
+		log.Errorf("Error with database fetching users: %v", err)
 		return 0, nil, err
 	}
 
@@ -58,7 +58,6 @@ func (db *DB) AssignTempPasswordToUser(id uint) (string, error) {
 func (db *DB) CreateUser(user *models.User) (*models.User, error) {
 	psw := user.CreateTempPassword()
 	user.Password = psw
-	log.Printf("Password: %s", user.Password)
 	err := user.HashPassword()
 	if err != nil {
 		return nil, err
@@ -116,7 +115,7 @@ func (db *DB) AuthorizeUser(username, password string) (*models.User, error) {
 	}
 	log.Debug("Checking AuthorizeUser Password: ", password, user.Password)
 	if success := user.CheckPasswordHash(password); !success {
-		log.Printf("Password authentication failed for: %s", password)
+		log.WithField("username", user.Username).Infof("Password authentication failed for: %s", password)
 		return nil, errors.New("invalid password")
 	}
 	return &user, nil

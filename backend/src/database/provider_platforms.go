@@ -3,7 +3,8 @@ package database
 import (
 	"UnlockEdv2/src/models"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func (db *DB) GetAllProviderPlatforms(page, perPage int) (int64, []models.ProviderPlatform, error) {
@@ -42,13 +43,14 @@ func (db *DB) GetProviderPlatformByID(id int) (*models.ProviderPlatform, error) 
 }
 
 func (db *DB) CreateProviderPlatform(platform *models.ProviderPlatform) (*models.ProviderPlatform, error) {
+
 	key, err := platform.EncryptAccessKey()
 	if err != nil {
-		log.Printf("Error encrypting access key: %v", err)
+		log.WithField("platform", platform).Errorf("Error encrypting provider access key: %v", err)
 		return nil, err
 	}
 	platform.AccessKey = key
-	log.Printf("Creating provider platform: %v", platform)
+	log.Debugf("Creating provider platform: %v", platform)
 	if err := db.Conn.Create(&platform).Error; err != nil {
 		return nil, err
 	}
@@ -60,7 +62,7 @@ func (db *DB) CreateProviderPlatform(platform *models.ProviderPlatform) (*models
 }
 
 func (db *DB) UpdateProviderPlatform(platform *models.ProviderPlatform, id uint) (*models.ProviderPlatform, error) {
-	log.Printf("Updating provider platform with ID: %d", id)
+	log.Infof("Updating provider platform with ID: %d", id)
 	var existingPlatform models.ProviderPlatform
 	if err := db.Conn.First(&existingPlatform, id).Error; err != nil {
 		return nil, err
@@ -69,7 +71,7 @@ func (db *DB) UpdateProviderPlatform(platform *models.ProviderPlatform, id uint)
 	if platform.AccessKey != "" {
 		key, err := platform.EncryptAccessKey()
 		if err != nil {
-			log.Printf("Error encrypting access key: %v", err)
+			log.WithField("platform", platform).Errorf("Error encrypting access key: %v", err)
 			return nil, err
 		}
 		existingPlatform.AccessKey = key
@@ -84,7 +86,7 @@ func (db *DB) UpdateProviderPlatform(platform *models.ProviderPlatform, id uint)
 }
 
 func (db *DB) DeleteProviderPlatform(id int) error {
-	log.Printf("Deleting provider platform with ID: %d", id)
+	log.Infof("Deleting provider platform with ID: %d", id)
 	if err := db.Conn.Delete(&models.ProviderPlatform{}, fmt.Sprintf("%d", id)).Error; err != nil {
 		return err
 	}

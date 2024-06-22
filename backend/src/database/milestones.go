@@ -2,6 +2,8 @@ package database
 
 import (
 	"UnlockEdv2/src/models"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func IsValidOrderBy(orderBy string) bool {
@@ -23,6 +25,7 @@ func (db *DB) GetMilestonesByProgramID(page, perPage, id int) (int64, []models.M
 	total := int64(0)
 	_ = db.Conn.Model(&models.Milestone{}).Where("program_id = ?", id).Count(&total)
 	if err := db.Conn.Where("program_id = ?", id).Limit(perPage).Offset((page - 1) * perPage).Find(&content).Error; err != nil {
+		log.WithField("program id", id).Errorf("Error while fetching milestones %s", err)
 		return 0, nil, err
 	}
 	return total, content, nil
